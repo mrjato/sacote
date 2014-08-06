@@ -21,6 +21,7 @@ library(shiny);
 library(plyr);
 source("characterization.R");
 source("micceri.R");
+source("tests.R");
 
 shinyServer(function(input, output, session) {
   output$downloadData <- downloadHandler(
@@ -36,7 +37,7 @@ shinyServer(function(input, output, session) {
     } else {
       return (read.csv(input$datafile$datapath));
     }
-  })
+  });
   
   output$dataset <- renderDataTable({
     return (loadDataset());
@@ -49,7 +50,11 @@ shinyServer(function(input, output, session) {
       # Factor selection checkbox group update
       choices <- as.list(names(dataset));
       names(choices) <- names(dataset);
+      
       updateSelectInput(session, "inFactor", choices=choices, selected=choices[1]);
+      updateSelectInput(session, "testsFactor", choices=choices, selected=choices[1]);
+      updateCheckboxGroupInput(session, "batchFactors", choices = choices, selected = choices[1]);
+      updateCheckboxGroupInput(session, "batchTargets", choices = choices, selected = choices[length(choices)]);
     }
   });
   
@@ -61,8 +66,10 @@ shinyServer(function(input, output, session) {
       # Factor selection checkbox group update
       choices <- as.list(names(dataset));
       names(choices) <- names(dataset);
+      
       choices <- choices[choices != factor];
       updateSelectInput(session, "inTarget", choices=choices, selected=choices[length(choices)]);
+      updateSelectInput(session, "testsTarget", choices=choices, selected=choices[length(choices)]);
     }
   });
   
@@ -84,7 +91,7 @@ shinyServer(function(input, output, session) {
       
       descStats <- ddply(filteredDataset, c(factor), function(x) {
         data.frame(
-          Length = length(x[[target]]),
+          Size = length(x[[target]]),
           Median = median(x[[target]]),
           Mean = mean(x[[target]]),
           SD = sd(x[[target]]),
@@ -226,4 +233,115 @@ shinyServer(function(input, output, session) {
       }
     }
   });
+  
+  output$tests <- renderText({
+    dataset <- loadDataset();
+    factor <- input$testsFactor;
+    target <- input$testsTarget;
+    transformation <- input$testsTransformation;
+    
+    if (is.null(dataset) || 
+      is.na(factor) || factor == "" || 
+      is.na(target) || target == "" ||
+      is.na(transformation)
+    ) {
+      return ("");
+    } else {
+      transform <- characterize.transfomations[[transformation]];
+      
+      filteredDataset <- dataset[,(names(dataset) %in% c(factor, target))];
+      filteredDataset[[factor]] <- as.factor(filteredDataset[[factor]]);
+      filteredDataset[[target]] <- transform(filteredDataset[[target]]);
+      
+      characterization <- characterize(filteredDataset, transformations=list(None = function(x) {x}));
+      charact <- characterization[[1]];
+      
+      isNormal <- ifelse(input$autoTest, all(charact@shapiro$p.value >= 0.05), input$testsIsNormal);
+      isHomoscedastic <- ifelse(input$autoTest, 
+        ifelse(isNormal, charact@bartlett < 0.05, charact@fligner < 0.05),
+        input$testsIsHomoscedastic
+      );
+      
+      test.result <- test.groups(filteredDataset, factor, target, isNormal, isHomoscedastic);
+      
+      paste(sep="", tags$table(class="table table-bordered table-hover table-condensed",
+        tags$tr(
+          tags$th("Variable"),
+          tags$th("Value")
+        ),
+        lapply(names(test.result), function(name) {
+          tags$tr(
+            tags$td(name),
+            tags$td(test.result[[name]])
+          )
+        })
+      ));
+    }
+  });
+  
+#   observe({
+#     factors <- input$batchFactors;
+#     targets <- input$batchTargets;
+#     transformations <- input$batchTransformations;
+#     
+#     if ((length(factors) > 1 || (length(factors) == 1 && factors[1] == "")) &&
+#       (length(targets) > 1 || (length(targets) == 1 && targets[1] == ""))
+#     ) {
+#       
+#     }
+#   });
+  
+  output$batch <- renderText({
+    input$batchDoIt; # Trigger
+    
+    dataset <- isolate(loadDataset());
+    factors <- isolate(input$batchFactors);
+    targets <- isolate(input$batchTargets);
+    transformations <- isolate(input$batchTransformations);
+    
+    shapiroThreshold <- isolate(input$batchShapiroThreshold);
+    bartlettThreshold <- isolate(input$batchBartlettThreshold);
+    flignerThreshold <- isolate(input$batchFlignerThreshold);
+    
+    if (is.null(dataset) ||
+      (length(factors) == 0 || (length(factors) == 1 && factors[1] == "")) ||
+      (length(targets) == 0 || (length(targets) == 1 && targets[1] == "")) ||
+      length(transformations) == 0
+    ) {
+      return ("");
+    } else {
+      text <- "";
+      
+      for (factor in factors) {
+        for (target in targets) {
+          filteredDataset <- dataset[,(names(dataset) %in% c(factor, target))];
+          filteredDataset[[factor]] <- as.factor(filteredDataset[[factor]]);
+          
+          for (transformation in transformations) {
+            transformationParam <- list();
+            transformationParam[[transformation]] <- characterize.transfomations[[transformation]];
+            characterization <- characterize(filteredDataset, transformationParam)[[1]];
+            
+            isNormal <- all(characterization@shapiro$p.value >= shapiroThreshold);
+            isHomoscedastic <- ifelse(isNormal,
+              characterization@bartlett <= bartlettThreshold,
+              characterization@fligner <= flignerThreshold
+            );
+            
+            text <- paste(sep="", 
+              text, 
+              tags$div(
+                paste( 
+                  transformation,
+                  test.groups.cat(filteredDataset, factor, target, isNormal, isHomoscedastic)
+                )
+              )
+            );
+          }
+        }
+      }
+      
+      return (text);
+    }
+  })
 })

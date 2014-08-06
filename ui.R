@@ -37,8 +37,8 @@ shinyUI(pageWithSidebar(
       ),
       tabPanel("Normality & Homoscedasticity", 
         fluidRow(
-          column(6, selectizeInput("inFactor", label="Factor", choices=c(), options=c(placeholder="Select variable..."))),
-          column(6, selectizeInput("inTarget", label="Target", choices=c(), options=c(placeholder="Select factor...")))
+          column(6, selectInput("inFactor", label="Factor", choices=c())),
+          column(6, selectInput("inTarget", label="Target", choices=c()))
         ),
         tabsetPanel(
           tabPanel("Tests",
@@ -52,7 +52,47 @@ shinyUI(pageWithSidebar(
             uiOutput("plots")
           )
         )
+      ),
+      tabPanel("Tests",
+        wellPanel(
+          fluidRow(
+            column(4, selectInput("testsFactor", label="Factor", choices = c())),
+            column(4, selectInput("testsTarget", label="Target", choices = c())),
+            column(4, selectInput("testsTransformation", label="Transformation",
+              choices=names(characterize.transfomations), 
+              selected="None")
+            )
+          ),
+          checkboxInput("autoTest", label = "Autocheck normality and homoscedasticity", value = TRUE),
+          conditionalPanel("!input.autoTest",
+            fluidRow(
+              column(4, checkboxInput("testsIsNormal", label="Is Normal?", value = FALSE)),
+              column(4, checkboxInput("testsIsHomoscedastic", label="Is Homoscedastic?", value = FALSE))
+            )
+          )
+        ),
+        htmlOutput("tests")
+      ),
+      tabPanel("Batch Tests",
+        conditionalPanel("output.dataset",
+          wellPanel(
+            tags$h4("Configuration"),
+            fluidRow(
+              column(4, checkboxGroupInput("batchFactors", label = "Factors", choices = c(""))),
+              column(4, checkboxGroupInput("batchTargets", label = "Targets", choices = c(""))),
+              column(4, checkboxGroupInput("batchTransformations", label = "Transformations",
+                choices=names(characterize.transfomations), 
+                selected="None"
+              ))
+            ),
+            sliderInput("batchShapiroThreshold", label = "Shapiro Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.1),
+            sliderInput("batchBartlettThreshold", label = "Bartlett Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+            sliderInput("batchFlignerThreshold", label = "Fligner Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+            actionButton("batchDoIt", label = "Generate")
+          ),
+          htmlOutput("batch")
+        )
       )
     )
   )
-))
+));

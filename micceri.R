@@ -16,13 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Sample Comparison Tests. If not, see 
 # <http://www.gnu.org/licenses/>.
-
+#
 # This function prints out the Micceri-criteria for tail weight and symmetry
 # of a distribution Micceri, T. (1989). The unicorn, the normal curve, and 
 # other improbable creatures. Psychological Bulletin, 105, 156-166. 
 # doi:10.1037/0033-2909.105.1.156
 # Source: http://stats.stackexchange.com/questions/16646/what-is-a-good-index
 # -of-the-degree-of-violation-of-normality-and-what-descriptiv
+
 library(fBasics)
 
 micceri <- function(x) {

@@ -63,17 +63,34 @@ characterize <- function(dataset, transformations = list(
           target = target,
           transformation.name = transformation.name,
           transformation = transformation,
-          micceri = ddply(tdataset, c(factor), function(x) { 
-            mc <- micceri(x[[target]]);
-            
-            data.frame(
-              tail_weight_label = mc$tail_weight_label,
-              symmetry_label = mc$symmetry_label
-            );
-          }),
-          shapiro = ddply(tdataset, c(factor), function(x) { 
-            data.frame(p.value = shapiro.test(x[[target]])$p.value);
-          }),
+          micceri = tryCatch(
+            {
+              ddply(tdataset, c(factor), function(x) { 
+                mc <- micceri(x[[target]]);
+                
+                data.frame(
+                  tail_weight_label = mc$tail_weight_label,
+                  symmetry_label = mc$symmetry_label
+                );
+              })
+            }, 
+            error = function(e) {
+              data.frame(
+                tail_weight_label = NA_character_,
+                symmetry_label = NA_character_
+              );
+            }
+          ),
+          shapiro = tryCatch(
+            {
+              ddply(tdataset, c(factor), function(x) { 
+                data.frame(p.value = shapiro.test(x[[target]])$p.value);
+              })
+            },
+            error = function(e) {
+              data.frame(p.value = NA_real_)
+            }
+          ),
           bartlett = bartlett.test(tdataset[[target]], tdataset[[factor]])$p.value,
           fligner = fligner.test(tdataset[[target]], tdataset[[factor]])$p.value
         ));

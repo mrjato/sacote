@@ -1,4 +1,23 @@
-# Recommended reading:
+# This file is part of Sample Comparison Tests.
+# 
+# Copyright (c) 2014, Miguel Reboiro Jato and Daniel González Peña, 
+# All rights reserved.
+#
+# Sample Comparison Tests is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License as 
+# published by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# Sample Comparison Tests is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with Sample Comparison Tests. If not, see 
+# <http://www.gnu.org/licenses/>.
+#
+# Recommended readings:
 # http://udel.edu/~mcdonald/statkruskalwallis.html
 #	http://mathnstats.com/index.php/hypothesis-testing/82-tests-for-means/122-two-
 # sample-t-test-unequal-variances.html
@@ -18,12 +37,12 @@ test.groups.print <- function(
   p.value.function=function(test) { test$p.value; },
   print.test.summary=FALSE, print.posthoc=FALSE
 ) {
-  output <- paste("\nTEST", test.name, factor, target, 
+  output <- paste("\n", test.name, factor, target, 
     "p-value =", p.value.function(test.result), "\n"
   );
   
   if (print.test.summary) {
-    output <- paste(sep="\n", output, test.result, summary(test.result));
+    output <- paste(sep="\n", output, summary(test.result));
   }
   
   if (print.posthoc && !is.null(test.posthoc)) {
@@ -95,7 +114,7 @@ test.groups <- function(
   dataset, 
   factor, target,
   isNormal, isHomoscedastic,
-  numOfSamplesThreshold=30
+  numOfSamplesThreshold = 30
 ) {
   factors <- unique(dataset[[factor]]);
   minNumOfSamples <- min(unlist(lapply(factors, function(f) {
@@ -103,37 +122,46 @@ test.groups <- function(
   })));
   
   p.value <- NA;
-  if (isNormal || minNumOfSamples >= numOfSamplesThreshold) {
-    if (isHomoscedastic) {
-      anova <- aov(as.formula(paste(target, "~", factor)), data=dataset);
-      
-      test.name <- "ANOVA";
-      p.value <- summary(anova)[[1]][["Pr(>F)"]][1];
-    } else if (length(factors) == 2) {
-      x <- dataset[[target]][dataset[[factor]] == factors[1]];
-      y <- dataset[[target]][dataset[[factor]] == factors[2]];
-      
-      wttest <- t.test(x, y);
-      
-      test.name <- "Welch's t-test";
-      p.value <- wttest$p.value;
-    } else if (length(factors) > 2) {
-      wanova.test <- as.formula(paste(target, factor, sep="~"));
-      wanova <- oneway.test(wanova.test, data=dataset);
-      
-      test.name <- "Welch's ANOVA";
-      p.value <- wanova$p.value;
-    }  
-  } else if (isHomoscedastic) {
-    kw <- kruskal.test(dataset[[target]] ~ dataset[[factor]]);
-    
-    test.name <- "Kruskal-Wallis";
-    p.value <- kw$p.value;
-  } else {
-    test.name <- "Non-Normal Heteroscedastic";
-  }
+  test.name <- "";
+  tryCatch(
+    { 
+      if (isNormal || minNumOfSamples >= numOfSamplesThreshold) {
+        if (isHomoscedastic) {
+          anova <- aov(as.formula(paste(target, "~", factor)), data=dataset);
+          
+          test.name <- "ANOVA";
+          p.value <- summary(anova)[[1]][["Pr(>F)"]][1];
+        } else if (length(factors) == 2) {
+          x <- dataset[[target]][dataset[[factor]] == factors[1]];
+          y <- dataset[[target]][dataset[[factor]] == factors[2]];
+          
+          wttest <- t.test(x, y);
+          
+          test.name <- "Welch's t-test";
+          p.value <- wttest$p.value;
+        } else if (length(factors) > 2) {
+          wanova.test <- as.formula(paste(target, factor, sep="~"));
+          wanova <- oneway.test(wanova.test, data=dataset);
+          
+          test.name <- "Welch's ANOVA";
+          p.value <- wanova$p.value;
+        }  
+      } else if (isHomoscedastic) {
+        kw <- kruskal.test(dataset[[target]] ~ dataset[[factor]]);
+        
+        test.name <- "Kruskal-Wallis";
+        p.value <- kw$p.value;
+      } else {
+        test.name <- "Non-Normal Heteroscedastic";
+      }
+    },
+    error = function(e) {
+      # Not working
+      test.name <- paste("ERROR:", e);
+    }
+  );
   
-  list(
+  return (list(
     factor = factor,
     target = target,
     isNormal = isNormal, 
@@ -142,5 +170,5 @@ test.groups <- function(
     numOfSamplesThreshold = numOfSamplesThreshold,
     test.name = test.name,
     p.value = p.value
-  );
+  ));
 }

@@ -27,7 +27,8 @@ shinyUI(pageWithSidebar(
     fileInput('datafile', 'Upload Dataset',
       accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')
     ),
-    downloadButton("downloadData", "Sample Dataset")
+    downloadButton("downloadSample1", "Sample Dataset 1 (Survey)"),
+    downloadButton("downloadSample2", "Sample Dataset 2 (Oil)")
   ),
   
   mainPanel(
@@ -42,6 +43,11 @@ shinyUI(pageWithSidebar(
         ),
         tabsetPanel(
           tabPanel("Tests",
+            checkboxGroupInput("inTransformations", label = "Transformations",
+              choices = names(characterize.transfomations), 
+              selected = "None",
+              inline = TRUE
+            ),
             htmlOutput("normality")
           ),
           tabPanel("Plots",
@@ -53,7 +59,7 @@ shinyUI(pageWithSidebar(
           )
         )
       ),
-      tabPanel("Tests",
+      tabPanel("Hypothesis Tests",
         wellPanel(
           fluidRow(
             column(4, selectInput("testsFactor", label="Factor", choices = c())),
@@ -73,7 +79,7 @@ shinyUI(pageWithSidebar(
         ),
         htmlOutput("tests")
       ),
-      tabPanel("Batch Tests",
+      tabPanel("Batch Hypothesis Tests",
         conditionalPanel("output.dataset",
           wellPanel(
             tags$h4("Configuration"),
@@ -85,13 +91,54 @@ shinyUI(pageWithSidebar(
                 selected="None"
               ))
             ),
-            sliderInput("batchShapiroThreshold", label = "Shapiro Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.1),
-            sliderInput("batchBartlettThreshold", label = "Bartlett Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
-            sliderInput("batchFlignerThreshold", label = "Fligner Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
-            actionButton("batchDoIt", label = "Generate")
+            tags$hr(),
+            sliderInput("batchShapiroThreshold", label = "Shapiro Threshold (Normal if greater or equal)", min = 0.01, max = 0.99, step = 0.01, value = 0.1),
+            numericInput("batchSampleSizeThreshold", label = "Sample Size Threshold (Normal if each group of samples is greater or equal)", min = 1, max = 1000, step = 1, value = 30),
+            sliderInput("batchBartlettThreshold", label = "Bartlett Threshold (Homoscedastic if lower)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+            sliderInput("batchFlignerThreshold", label = "Fligner Threshold (Homoscedastic if lower)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+#             checkboxInput("batchSummary", label = "Show Summary", value = FALSE),
+#             checkboxInput("batchPosthoc", label = "Show Post-hoc (when available)", value = FALSE),
+            actionButton("batchDoIt", label = "Calculate")
           ),
           htmlOutput("batch")
         )
+      ),
+      tabPanel("Help",
+        tags$h3("References"),
+        tags$div(class="well",
+          tags$ul(
+            tags$li(tags$a(
+              "Normality Tests for Statistical Analysis: A Guide for Non-Statisticians", 
+              href="ijem-10-486.pdf"
+            )),
+            tags$li(tags$a(
+              "The Unicorn, The Normal Curve, and Other Improbable Creatures [Micceri's Test]", 
+              href="micceri89.pdf"
+            )),
+            tags$li(tags$a(
+              "Homoscedasticity and heteroscedasticity", 
+              href="http://udel.edu/~mcdonald/stathomog.html"
+            )),
+            tags$li(tags$a(
+              "Fligner-Killeen Test", 
+              href="http://stat.ethz.ch/R-manual/R-patched/library/stats/html/fligner.test.html"
+            )),
+            tags$li(tags$a(
+              "Kruskal–Wallis test and Mann–Whitney U test",
+              href="http://udel.edu/~mcdonald/statkruskalwallis.html"
+            )),
+            tags$li(tags$a(
+              "Two Sample t-Test for Difference of the Population Means (Unequal Variances)",
+              href="http://mathnstats.com/index.php/hypothesis-testing/82-tests-for-means/122-two-sample-t-test-unequal-variances.html"
+            )),
+            tags$li(tags$a(
+              "The Normal Distribution",
+              href="The Normal Distribution"
+            ))
+          )
+        ),
+        tags$h3("Automatic Tests Decision Tree"),
+        tags$img(src = "tests.png")
       )
     )
   )

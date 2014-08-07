@@ -24,10 +24,16 @@ source("micceri.R");
 source("tests.R");
 
 shinyServer(function(input, output, session) {
-  output$downloadData <- downloadHandler(
-    filename = function() { "data.csv" },
+  output$downloadSample1 <- downloadHandler(
+    filename = function() { "data-survey.csv" },
     content = function(file) {
-      write.csv(read.csv("data.csv"), file, row.names=FALSE, quote=FALSE);
+      write.csv(read.csv("data-survey.csv"), file, row.names=FALSE, quote=FALSE);
+    }
+  );
+  output$downloadSample2 <- downloadHandler(
+    filename = function() { "data-oil.csv" },
+    content = function(file) {
+      write.csv(read.csv("data-oil.csv"), file, row.names=FALSE, quote=FALSE);
     }
   );
   
@@ -77,17 +83,21 @@ shinyServer(function(input, output, session) {
     dataset <- loadDataset();
     factor <- input$inFactor;
     target <- input$inTarget;
+    transformations <- input$inTransformations;
     
     if (is.null(dataset) || 
       is.na(factor) || factor == "" || 
-      is.na(target) || target == ""
+      is.na(target) || target == "" ||
+      length(transformations) == 0
     ) {
       return ("");
     } else {
       filteredDataset <- dataset[,(names(dataset) %in% c(factor, target))];
       filteredDataset[,factor] <- as.factor(filteredDataset[[factor]]);
       
-      characterization <- characterize(filteredDataset);
+      transformationsParam <- characterize.transfomations[names(characterize.transfomations) %in% transformations];
+      
+      characterization <- characterize(filteredDataset, transformationsParam);
       
       descStats <- ddply(filteredDataset, c(factor), function(x) {
         data.frame(
@@ -110,10 +120,10 @@ shinyServer(function(input, output, session) {
             ) 
           }),
           lapply(characterization, function(charact) {
-            isNormal <- all(charact@shapiro$p.value >= 0.05);
+            isNormal <- all(charact@shapiro$p.value >= 0.1);
             columns <- length(charact@shapiro$p.value);
             
-            list(
+            tagList(
               tags$tr(
                 tags$td(rowspan="5", charact@transformation.name),
                 tags$td(colspan="2", "Shapiro (Normality)"),
@@ -121,7 +131,7 @@ shinyServer(function(input, output, session) {
                   p.value <- charact@shapiro$p.value[charact@shapiro[[factor]] == stats[factor]];
                   
                   tags$td(
-                    HTML(ifelse(p.value >= 0.05, paste(sep="", "<strong>", p.value, "</strong>"), p.value))
+                    HTML(ifelse(p.value >= 0.1, paste(sep="", "<strong>", p.value, "</strong>"), p.value))
                   );
                 })
               ),
@@ -300,8 +310,12 @@ shinyServer(function(input, output, session) {
     transformations <- isolate(input$batchTransformations);
     
     shapiroThreshold <- isolate(input$batchShapiroThreshold);
+    sampleSizeThreshold <- isolate(input$batchSampleSizeThreshold);
     bartlettThreshold <- isolate(input$batchBartlettThreshold);
     flignerThreshold <- isolate(input$batchFlignerThreshold);
+    
+#     showSummary <- isolate(input$batchSummary);
+#     showPosthoc <- isolate(input$batchPosthoc);
     
     if (is.null(dataset) ||
       (length(factors) == 0 || (length(factors) == 1 && factors[1] == "")) ||
@@ -310,8 +324,9 @@ shinyServer(function(input, output, session) {
     ) {
       return ("");
     } else {
-      text <- "";
+      tests <- list();
       
+      index <- 1;
       for (factor in factors) {
         for (target in targets) {
           filteredDataset <- dataset[,(names(dataset) %in% c(factor, target))];
@@ -328,20 +343,37 @@ shinyServer(function(input, output, session) {
               characterization@fligner <= flignerThreshold
             );
             
-            text <- paste(sep="", 
-              text, 
-              tags$div(
-                paste( 
-                  transformation,
-                  test.groups.cat(filteredDataset, factor, target, isNormal, isHomoscedastic)
-                )
-              )
-            );
+            testResult <- test.groups(filteredDataset, factor, target, isNormal, isHomoscedastic, sampleSizeThreshold);
+            testResult$transformation <- transformation;
+            
+            tests[[index]] <- testResult;
+            index <- index + 1;
           }
         }
       }
       
-      return (text);
+      return (paste(sep="", 
+        tags$table(class="table table-bordered table-hover table-condensed",
+          tags$tr(
+            tags$th("Factor"),
+            tags$th("Target"),
+            tags$th("Transformation"),
+            tags$th("Test"),
+            tags$th("p-value")
+          ),
+          lapply(tests, function(result) {
+            tagList(
+              tags$tr(
+                tags$td(result$factor),
+                tags$td(result$target),
+                tags$td(result$transformation),
+                tags$td(result$test.name),
+                tags$td(result$p.value)
+              )
+            )
+          })
+        )
+      ));
     }
   })
 })

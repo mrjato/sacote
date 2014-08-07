@@ -19,6 +19,7 @@
 
 library(shiny);
 library(plyr);
+library(bear);
 source("characterization.R");
 source("micceri.R");
 source("tests.R");
@@ -191,7 +192,50 @@ shinyServer(function(input, output, session) {
       formula <- as.formula(paste(sep="~", target, factor));
       dataset[[target]] <- characterize.transfomations[[transformation]](dataset[[target]]);
       
-      boxplot(formula, data=dataset, main=paste(factor, "vs", target), xlab=factor, ylab=target);
+      boxplot(formula, data=dataset, 
+        main=paste(factor, "vs", target),
+        xlab=factor, ylab=target,
+        col = rainbow(length(unique(dataset[[factor]])))
+      );
+    }
+  });
+  
+  output$barplot <- renderPlot({
+    dataset <- loadDataset();
+    factor <- input$inFactor;
+    target <- input$inTarget;
+    transformation <- input$inTransformation;
+    
+    if (is.null(dataset) || 
+      is.na(factor) || factor == "" || 
+      is.na(target) || target == "" ||
+      is.na(transformation)
+    ) {
+      return (NULL);
+    } else {
+      transform <- characterize.transfomations[[transformation]];
+      
+      filteredDataset <- dataset[,(names(dataset) %in% c(factor, target))];
+      filteredDataset[[target]] <- transform(filteredDataset[[target]]);
+      
+      dfc <- summarySE(filteredDataset, measurevar=target, groupvars=c(factor));
+      
+      type <- input$barplotType;
+      variation <- dfc[[type]];
+      
+      plot <- barplot(dfc[[target]], 
+        names.arg = dfc[[factor]], 
+        main = paste(factor, "vs", target),
+        xlab=factor, ylab=target,
+        col = rainbow(length(unique(dfc[[factor]]))),
+        ylim = c(0, max(dfc[[target]] + variation) * 1.05)
+      );
+      box();
+      segments(plot, dfc[[target]] - variation, plot, dfc[[target]] + variation, lwd=2);
+      segments(plot - 0.1, dfc[[target]] - variation, plot + 0.1, dfc[[target]] - variation, lwd=2);
+      segments(plot - 0.1, dfc[[target]] + variation, plot + 0.1, dfc[[target]] + variation, lwd=2);
+      
+      return (plot);
     }
   });
   

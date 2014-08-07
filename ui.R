@@ -56,6 +56,11 @@ shinyUI(pageWithSidebar(
               selected="None"
             ),
             plotOutput("boxplot"),
+            selectInput("barplotType", label="Error Bars",
+              choices=list("Standard Deviation" = "sd", "Standard Error" = "se", "Confidence Interval" = "ci"),
+              selected="sd"
+            ),
+            plotOutput("barplot"),
             uiOutput("plots")
           )
         )

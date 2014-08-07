@@ -55,6 +55,7 @@ shinyUI(pageWithSidebar(
               choices=names(characterize.transfomations), 
               selected="None"
             ),
+            plotOutput("boxplot"),
             uiOutput("plots")
           )
         )

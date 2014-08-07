@@ -175,6 +175,26 @@ shinyServer(function(input, output, session) {
     }
   });
   
+  output$boxplot <- renderPlot({
+    dataset <- loadDataset();
+    factor <- input$inFactor;
+    target <- input$inTarget;
+    transformation <- input$inTransformation;
+    
+    if (is.null(dataset) || 
+      is.na(factor) || factor == "" || 
+      is.na(target) || target == "" ||
+      is.na(transformation)
+    ) {
+      return (NULL);
+    } else {
+      formula <- as.formula(paste(sep="~", target, factor));
+      dataset[[target]] <- characterize.transfomations[[transformation]](dataset[[target]]);
+      
+      boxplot(formula, data=dataset, main=paste(factor, "vs", target), xlab=factor, ylab=target);
+    }
+  });
+  
   # Multiple plot visualization based on https://gist.github.com/wch/5436415/
   # Insert the right number of plot output objects into the web page
   output$plots <- renderUI({

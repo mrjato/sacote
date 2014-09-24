@@ -353,18 +353,6 @@ shinyServer(function(input, output, session) {
     }
   });
   
-#   observe({
-#     factors <- input$batchFactors;
-#     targets <- input$batchTargets;
-#     transformations <- input$batchTransformations;
-#     
-#     if ((length(factors) > 1 || (length(factors) == 1 && factors[1] == "")) &&
-#       (length(targets) > 1 || (length(targets) == 1 && targets[1] == ""))
-#     ) {
-#       
-#     }
-#   });
-  
   output$batch <- renderText({
     input$batchDoIt; # Trigger
     
@@ -377,9 +365,6 @@ shinyServer(function(input, output, session) {
     sampleSizeThreshold <- isolate(input$batchSampleSizeThreshold);
     bartlettThreshold <- isolate(input$batchBartlettThreshold);
     flignerThreshold <- isolate(input$batchFlignerThreshold);
-    
-#     showSummary <- isolate(input$batchSummary);
-#     showPosthoc <- isolate(input$batchPosthoc);
     
     if (is.null(dataset) ||
       (length(factors) == 0 || (length(factors) == 1 && factors[1] == "")) ||

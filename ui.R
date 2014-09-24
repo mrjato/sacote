@@ -104,6 +104,7 @@ shinyUI(pageWithSidebar(
             sliderInput("batchFlignerThreshold", label = "Fligner Threshold (Homoscedastic if lower)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
             actionButton("batchDoIt", label = "Calculate")
           ),
+          downloadButton("batchDownload", "Download Table"),
           htmlOutput("batch")
         )
       ),

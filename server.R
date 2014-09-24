@@ -353,7 +353,7 @@ shinyServer(function(input, output, session) {
     }
   });
   
-  output$batch <- renderText({
+  tests <- reactive({
     input$batchDoIt; # Trigger
     
     dataset <- isolate(loadDataset());
@@ -371,7 +371,7 @@ shinyServer(function(input, output, session) {
       (length(targets) == 0 || (length(targets) == 1 && targets[1] == "")) ||
       length(transformations) == 0
     ) {
-      return ("");
+      return (NULL);
     } else {
       tests <- list();
       
@@ -388,8 +388,8 @@ shinyServer(function(input, output, session) {
             
             isNormal <- all(characterization@shapiro$p.value >= shapiroThreshold);
             isHomoscedastic <- ifelse(isNormal,
-              characterization@bartlett <= bartlettThreshold,
-              characterization@fligner <= flignerThreshold
+                                      characterization@bartlett <= bartlettThreshold,
+                                      characterization@fligner <= flignerThreshold
             );
             
             testResult <- test.groups(filteredDataset, factor, target, isNormal, isHomoscedastic, sampleSizeThreshold);
@@ -401,6 +401,19 @@ shinyServer(function(input, output, session) {
         }
       }
       
+      return (tests);
+    }
+  });
+  
+  output$batch <- renderText({
+    input$batchDoIt; # Trigger
+      
+    testResults <- tests();
+    
+    if (is.null(testResults)) {
+      return ("");
+    } else {
+      
       return (paste(sep="", 
         tags$table(class="table table-bordered table-hover table-condensed",
           tags$tr(
@@ -410,7 +423,7 @@ shinyServer(function(input, output, session) {
             tags$th("Test"),
             tags$th("p-value")
           ),
-          lapply(tests, function(result) {
+          lapply(testResults, function(result) {
             tagList(
               tags$tr(
                 tags$td(result$factor),
@@ -424,5 +437,15 @@ shinyServer(function(input, output, session) {
         )
       ));
     }
-  })
+  });
+  
+  output$batchDownload <- downloadHandler(
+    filename = function() { "batch.csv" },
+    content = function(file) { 
+      testResults <- tests();
+      trToWrite <- data.frame(matrix(unlist(testResults), nrow=length(testResults), byrow=TRUE));
+      colnames(trToWrite) <- names(testResults[[1]]);
+      write.csv(trToWrite, file = file, quote = FALSE, row.names = FALSE);
+    }
+  );
 })

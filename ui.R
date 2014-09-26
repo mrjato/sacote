@@ -23,7 +23,7 @@ source("characterization.R");
 shinyUI(pageWithSidebar(
   titlePanel("Sample Comparison Tests"),
   
-  sidebarPanel(
+  sidebarPanel(width = 3,
     fileInput('datafile', 'Upload Dataset',
       accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')
     ),
@@ -31,7 +31,7 @@ shinyUI(pageWithSidebar(
     downloadButton("downloadSample2", "Sample Dataset 2 (Oil)")
   ),
   
-  mainPanel(
+  mainPanel(width = 9,
     tabsetPanel(
       tabPanel("Dataset",
         dataTableOutput("dataset")
@@ -57,8 +57,8 @@ shinyUI(pageWithSidebar(
             ),
             plotOutput("boxplot"),
             selectInput("barplotType", label="Error Bars",
-              choices=list("Standard Deviation" = "sd", "Standard Error" = "se", "Confidence Interval" = "ci"),
-              selected="sd"
+              choices=list("Standard Error" = "se", "Confidence Interval" = "ci", "Standard Deviation" = "sd"),
+              selected="se"
             ),
             plotOutput("barplot"),
             uiOutput("plots")

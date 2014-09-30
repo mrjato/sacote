@@ -58,8 +58,9 @@ shinyServer(function(input, output, session) {
       choices <- as.list(names(dataset));
       names(choices) <- names(dataset);
       
-      updateSelectInput(session, "inFactor", choices=choices, selected=choices[1]);
-      updateSelectInput(session, "testsFactor", choices=choices, selected=choices[1]);
+      for (name in c("normalityFactor", "plotsFactor", "testsFactor")) {
+        updateSelectInput(session, name, choices=choices, selected=choices[1]);
+      }
       updateCheckboxGroupInput(session, "batchFactors", choices = choices, selected = choices[1]);
       updateCheckboxGroupInput(session, "batchTargets", choices = choices, selected = choices[length(choices)]);
     }
@@ -67,24 +68,26 @@ shinyServer(function(input, output, session) {
   
   observe({
     dataset <- loadDataset();
-    factor <- input$inFactor;
     
-    if (!is.null(dataset) && !is.na(factor) && factor != "") {
-      # Factor selection checkbox group update
+    if (!is.null(dataset)) {
       choices <- as.list(names(dataset));
-      names(choices) <- names(dataset);
       
-      choices <- choices[choices != factor];
-      updateSelectInput(session, "inTarget", choices=choices, selected=choices[length(choices)]);
-      updateSelectInput(session, "testsTarget", choices=choices, selected=choices[length(choices)]);
+      for (name in c("normality", "plots", "tests")) {
+        factor <- input[[paste(name, "Factor", sep="")]];
+        
+        if (!is.na(factor) && factor != "") {
+          factorChoices <- choices[choices != factor];
+          updateSelectInput(session, paste(name, "Target", sep=""), choices=factorChoices, selected=factorChoices[length(factorChoices)]);
+        }
+      }
     }
   });
   
-  output$normality <- renderText({
+  output$normalityTables <- renderText({
     dataset <- loadDataset();
-    factor <- input$inFactor;
-    target <- input$inTarget;
-    transformations <- input$inTransformations;
+    factor <- input$normalityFactor;
+    target <- input$normalityTarget;
+    transformations <- input$normalityTransformations;
     
     if (is.null(dataset) || 
       is.na(factor) || factor == "" || 
@@ -176,11 +179,11 @@ shinyServer(function(input, output, session) {
     }
   });
   
-  output$boxplot <- renderPlot({
+  output$plotsBoxplot <- renderPlot({
     dataset <- loadDataset();
-    factor <- input$inFactor;
-    target <- input$inTarget;
-    transformation <- input$inTransformation;
+    factor <- input$plotsFactor;
+    target <- input$plotsTarget;
+    transformation <- input$plotsTransformation;
     
     if (is.null(dataset) || 
       is.na(factor) || factor == "" || 
@@ -189,22 +192,23 @@ shinyServer(function(input, output, session) {
     ) {
       return (NULL);
     } else {
-      formula <- as.formula(paste(sep="~", target, factor));
       dataset[[target]] <- characterize.transfomations[[transformation]](dataset[[target]]);
       
+      formula <- as.formula(paste(sep="~", target, factor));
       boxplot(formula, data=dataset, 
         main=paste(factor, "vs", target),
         xlab=factor, ylab=target,
-        col = rainbow(length(unique(dataset[[factor]])))
+        col = rainbow(length(unique(dataset[[factor]]))),
+        las = 2
       );
     }
   });
   
-  output$barplot <- renderPlot({
+  output$plotsBarplot <- renderPlot({
     dataset <- loadDataset();
-    factor <- input$inFactor;
-    target <- input$inTarget;
-    transformation <- input$inTransformation;
+    factor <- input$plotsFactor;
+    target <- input$plotsTarget;
+    transformation <- input$plotsTransformation;
     
     if (is.null(dataset) || 
       is.na(factor) || factor == "" || 
@@ -217,10 +221,11 @@ shinyServer(function(input, output, session) {
       
       filteredDataset <- dataset[,(names(dataset) %in% c(factor, target))];
       filteredDataset[[target]] <- transform(filteredDataset[[target]]);
+      filteredDataset <- dataset[sort.list(filteredDataset[[factor]]),];
       
       dfc <- summarySE(filteredDataset, measurevar=target, groupvars=c(factor));
       
-      type <- input$barplotType;
+      type <- input$plotsBarplotType;
       variation <- dfc[[type]];
       
       plot <- barplot(dfc[[target]], 
@@ -228,7 +233,8 @@ shinyServer(function(input, output, session) {
         main = paste(factor, "vs", target),
         xlab=factor, ylab=target,
         col = rainbow(length(unique(dfc[[factor]]))),
-        ylim = c(0, max(dfc[[target]] + variation) * 1.05)
+        ylim = c(0, max(dfc[[target]] + variation) * 1.05),
+        las = 2
       );
       box();
       segments(plot, dfc[[target]] - variation, plot, dfc[[target]] + variation, lwd=2);
@@ -241,11 +247,11 @@ shinyServer(function(input, output, session) {
   
   # Multiple plot visualization based on https://gist.github.com/wch/5436415/
   # Insert the right number of plot output objects into the web page
-  output$plots <- renderUI({
+  output$normalityPlots <- renderUI({
     dataset <- loadDataset();
-    factor <- input$inFactor;
-    target <- input$inTarget;
-    transformation <- input$inTransformation;
+    factor <- input$normalityFactor;
+    target <- input$normalityTarget;
+    transformation <- input$normalityTransformation;
     
     if (is.null(dataset) || 
       is.na(factor) || factor == "" || 
@@ -268,9 +274,9 @@ shinyServer(function(input, output, session) {
   
   observe({
     dataset <- loadDataset();
-    factor <- input$inFactor;
-    target <- input$inTarget;
-    transformation <- input$inTransformation;
+    factor <- input$normalityFactor;
+    target <- input$normalityTarget;
+    transformation <- input$normalityTransformation;
     
     if (!(is.null(dataset) || 
       is.na(factor) || factor == "" || 

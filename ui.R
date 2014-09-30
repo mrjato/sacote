@@ -38,32 +38,41 @@ shinyUI(pageWithSidebar(
       ),
       tabPanel("Normality & Homoscedasticity", 
         fluidRow(
-          column(6, selectInput("inFactor", label="Factor", choices=c())),
-          column(6, selectInput("inTarget", label="Target", choices=c()))
+          column(6, selectInput("normalityFactor", label="Factor", choices=c())),
+          column(6, selectInput("normalityTarget", label="Target", choices=c()))
         ),
         tabsetPanel(
           tabPanel("Tests",
-            checkboxGroupInput("inTransformations", label = "Transformations",
+            checkboxGroupInput("normalityTransformations", label = "Transformations",
               choices = names(characterize.transfomations), 
               selected = "None",
               inline = TRUE
             ),
-            htmlOutput("normality")
+            htmlOutput("normalityTables")
           ),
           tabPanel("Plots",
-            selectInput("inTransformation", label="Transformation", 
-              choices=names(characterize.transfomations), 
-              selected="None"
+            selectInput("normalityTransformation", label="Transformation", 
+              choices=names(characterize.transfomations), selected="None"
             ),
-            plotOutput("boxplot"),
-            selectInput("barplotType", label="Error Bars",
-              choices=list("Standard Error" = "se", "Confidence Interval" = "ci", "Standard Deviation" = "sd"),
-              selected="se"
-            ),
-            plotOutput("barplot"),
-            uiOutput("plots")
+            uiOutput("normalityPlots")
           )
         )
+      ),
+      tabPanel("Plots",
+        fluidRow(
+          column(6, selectInput("plotsFactor", label="Factor", choices=c())),
+          column(6, selectInput("plotsTarget", label="Target", choices=c()))
+        ),
+        selectInput("plotsTransformation", label="Transformation", 
+          choices=names(characterize.transfomations), 
+          selected="None"
+        ),
+        plotOutput("plotsBoxplot"),
+        selectInput("plotsBarplotType", label="Error Bars",
+          choices=list("Standard Error" = "se", "Confidence Interval" = "ci", "Standard Deviation" = "sd"),
+          selected="se"
+        ),
+        plotOutput("plotsBarplot")
       ),
       tabPanel("Hypothesis Tests",
         wellPanel(

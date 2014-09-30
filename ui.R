@@ -102,6 +102,15 @@ shinyUI(pageWithSidebar(
             numericInput("batchSampleSizeThreshold", label = "Sample Size Threshold (Normal if each group of samples is greater or equal)", min = 1, max = 1000, step = 1, value = 30),
             sliderInput("batchBartlettThreshold", label = "Bartlett Threshold (Homoscedastic if lower)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
             sliderInput("batchFlignerThreshold", label = "Fligner Threshold (Homoscedastic if lower)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+            selectInput("batchTestCorrection", label = "Test Correction", choices = c(
+              "None" = "none",
+              "Holm" = "holm",
+              "Hochberg" = "hochberg",
+              "Hommel" = "hommel",
+              "Bonferroni" = "bonferroni",
+              "Benjamini & Hochberg (FDR)" = "fdr",
+              "Benjamini & Yakutieli" = "BY"
+            ), selected="none"),
             actionButton("batchDoIt", label = "Calculate")
           ),
           downloadButton("batchDownload", "Download Table"),

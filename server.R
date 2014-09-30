@@ -360,6 +360,7 @@ shinyServer(function(input, output, session) {
     factors <- isolate(input$batchFactors);
     targets <- isolate(input$batchTargets);
     transformations <- isolate(input$batchTransformations);
+    correction <- isolate(input$batchTestCorrection);
     
     shapiroThreshold <- isolate(input$batchShapiroThreshold);
     sampleSizeThreshold <- isolate(input$batchSampleSizeThreshold);
@@ -388,8 +389,8 @@ shinyServer(function(input, output, session) {
             
             isNormal <- all(characterization@shapiro$p.value >= shapiroThreshold);
             isHomoscedastic <- ifelse(isNormal,
-                                      characterization@bartlett <= bartlettThreshold,
-                                      characterization@fligner <= flignerThreshold
+              characterization@bartlett <= bartlettThreshold,
+              characterization@fligner <= flignerThreshold
             );
             
             testResult <- test.groups(filteredDataset, factor, target, isNormal, isHomoscedastic, sampleSizeThreshold);
@@ -399,6 +400,11 @@ shinyServer(function(input, output, session) {
             index <- index + 1;
           }
         }
+      }
+      
+      if (correction != "none") {
+        adjusted <- p.adjust(sapply(tests, function(x) { x$p.value }), method=correction);
+        tests <- mapply(function (x,y) append(x, list(q.value=y)), tests, adjusted, SIMPLIFY=FALSE, USE.NAMES=TRUE);
       }
       
       return (tests);
@@ -413,29 +419,57 @@ shinyServer(function(input, output, session) {
     if (is.null(testResults)) {
       return ("");
     } else {
+      correction <- isolate(input$batchTestCorrection);
       
-      return (paste(sep="", 
-        tags$table(class="table table-bordered table-hover table-condensed",
-          tags$tr(
-            tags$th("Factor"),
-            tags$th("Target"),
-            tags$th("Transformation"),
-            tags$th("Test"),
-            tags$th("p-value")
-          ),
-          lapply(testResults, function(result) {
-            tagList(
-              tags$tr(
-                tags$td(result$factor),
-                tags$td(result$target),
-                tags$td(result$transformation),
-                tags$td(result$test.name),
-                tags$td(result$p.value)
+      if (correction == "none") {
+        return (paste(sep="", 
+          tags$table(class="table table-bordered table-hover table-condensed",
+            tags$tr(
+              tags$th("Factor"),
+              tags$th("Target"),
+              tags$th("Transformation"),
+              tags$th("Test"),
+              tags$th("p-value")
+            ),
+            lapply(testResults, function(result) {
+              tagList(
+                tags$tr(
+                  tags$td(result$factor),
+                  tags$td(result$target),
+                  tags$td(result$transformation),
+                  tags$td(result$test.name),
+                  tags$td(result$p.value)
+                )
               )
-            )
-          })
-        )
-      ));
+            })
+          )
+        ));
+      } else {
+        return (paste(sep="", 
+          tags$table(class="table table-bordered table-hover table-condensed",
+            tags$tr(
+              tags$th("Factor"),
+              tags$th("Target"),
+              tags$th("Transformation"),
+              tags$th("Test"),
+              tags$th("p-value"),
+              tags$th("q-value")
+            ),
+            lapply(testResults, function(result) {
+              tagList(
+                tags$tr(
+                  tags$td(result$factor),
+                  tags$td(result$target),
+                  tags$td(result$transformation),
+                  tags$td(result$test.name),
+                  tags$td(result$p.value),
+                  tags$td(result$q.value)
+                )
+              )
+            })
+          )
+        ));
+      }
     }
   });
   

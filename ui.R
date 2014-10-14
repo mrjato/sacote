@@ -109,8 +109,8 @@ shinyUI(pageWithSidebar(
             tags$hr(),
             sliderInput("batchShapiroThreshold", label = "Shapiro Threshold (Normal if greater or equal)", min = 0.01, max = 0.99, step = 0.01, value = 0.1),
             numericInput("batchSampleSizeThreshold", label = "Sample Size Threshold (Normal if each group of samples is greater or equal)", min = 1, max = 1000, step = 1, value = 30),
-            sliderInput("batchBartlettThreshold", label = "Bartlett Threshold (Homoscedastic if lower)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
-            sliderInput("batchFlignerThreshold", label = "Fligner Threshold (Homoscedastic if lower)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+            sliderInput("batchBartlettThreshold", label = "Bartlett Threshold (Homoscedastic if greater or equal)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+            sliderInput("batchFlignerThreshold", label = "Fligner Threshold (Homoscedastic if greater or equal)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
             selectInput("batchTestCorrection", label = "Test Correction", choices = c(
               "None" = "none",
               "Holm" = "holm",

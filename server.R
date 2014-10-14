@@ -164,13 +164,13 @@ shinyServer(function(input, output, session) {
               tags$tr(class = ifelse(isNormal, "success", "warning"),
                 tags$td(colspan="2", "Bartlett (Homos. if normal)"),
                 tags$td(colspan=columns, 
-                  HTML(ifelse(isNormal && charact@bartlett < 0.05, paste(sep="", "<strong>", charact@bartlett, "</strong>"), charact@bartlett))
+                  HTML(ifelse(isNormal && charact@bartlett >= 0.05, paste(sep="", "<strong>", charact@bartlett, "</strong>"), charact@bartlett))
                 )
               ),
               tags$tr(class = ifelse(!isNormal, "success", "warning"),
                 tags$td(colspan="2", "Fligner (Homos. if non-normal)"),
                 tags$td(colspan=columns, 
-                  HTML(ifelse(!isNormal && charact@fligner < 0.05, paste(sep="", "<strong>", charact@fligner, "</strong>"), charact@fligner))
+                  HTML(ifelse(!isNormal && charact@fligner >= 0.05, paste(sep="", "<strong>", charact@fligner, "</strong>"), charact@fligner))
                 )
               )
             )
@@ -337,9 +337,9 @@ shinyServer(function(input, output, session) {
       characterization <- characterize(filteredDataset, transformations=list(None = function(x) {x}));
       charact <- characterization[[1]];
       
-      isNormal <- ifelse(input$autoTest, all(charact@shapiro$p.value >= 0.05), input$testsIsNormal);
+      isNormal <- ifelse(input$autoTest, all(charact@shapiro$p.value >= 0.1), input$testsIsNormal);
       isHomoscedastic <- ifelse(input$autoTest, 
-        ifelse(isNormal, charact@bartlett < 0.05, charact@fligner < 0.05),
+        ifelse(isNormal, charact@bartlett >= 0.05, charact@fligner >= 0.05),
         input$testsIsHomoscedastic
       );
       
@@ -396,8 +396,8 @@ shinyServer(function(input, output, session) {
             
             isNormal <- all(characterization@shapiro$p.value >= shapiroThreshold);
             isHomoscedastic <- ifelse(isNormal,
-              characterization@bartlett <= bartlettThreshold,
-              characterization@fligner <= flignerThreshold
+              characterization@bartlett >= bartlettThreshold,
+              characterization@fligner >= flignerThreshold
             );
             
             testResult <- test.groups(filteredDataset, factor, target, isNormal, isHomoscedastic, sampleSizeThreshold);

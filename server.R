@@ -109,6 +109,7 @@ shinyServer(function(input, output, session) {
           Median = median(x[[target]]),
           Mean = mean(x[[target]]),
           SD = sd(x[[target]]),
+          Variance = var(x[[target]]),
           Min = min(x[[target]]),
           Max = max(x[[target]])
         )

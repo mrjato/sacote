@@ -56,16 +56,12 @@ test.groups.cat <- function(
   dataset, 
   factor, target,
   isNormal, isHomoscedastic,
-  numOfSamplesThreshold=30,
   print.test.summary=FALSE, 
   print.posthoc=FALSE
 ) {
   factors <- unique(dataset[[factor]]);
-  minNumOfSamples <- min(unlist(lapply(factors, function(f) {
-    length(which(dataset[[factor]] == f));
-  })));
   
-  if (isNormal || minNumOfSamples >= numOfSamplesThreshold) {
+  if (isNormal) {
     if (isHomoscedastic) {
       anova <- aov(as.formula(paste(target, "~", factor)), data=dataset);
       
@@ -113,19 +109,15 @@ test.groups.cat <- function(
 test.groups <- function(
   dataset, 
   factor, target,
-  isNormal, isHomoscedastic,
-  numOfSamplesThreshold = 30
+  isNormal, isHomoscedastic
 ) {
   factors <- unique(dataset[[factor]]);
-  minNumOfSamples <- min(unlist(lapply(factors, function(f) {
-    length(which(dataset[[factor]] == f));
-  })));
   
   p.value <- NA;
   test.name <- "";
   tryCatch(
     { 
-      if (isNormal || minNumOfSamples >= numOfSamplesThreshold) {
+      if (isNormal) {
         if (isHomoscedastic) {
           anova <- aov(as.formula(paste(target, "~", factor)), data=dataset);
           
@@ -166,8 +158,6 @@ test.groups <- function(
     target = target,
     isNormal = isNormal, 
     isHomoscedastic = isHomoscedastic,
-    minNumOfSamples = minNumOfSamples,
-    numOfSamplesThreshold = numOfSamplesThreshold,
     test.name = test.name,
     p.value = p.value
   ));

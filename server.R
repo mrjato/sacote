@@ -96,6 +96,11 @@ shinyServer(function(input, output, session) {
     ) {
       return ("");
     } else {
+      shapiroThreshold <- input$globalShapiroThreshold;
+      samplesThreshold <- input$globalSampleSizeThreshold;
+      bartlettThreshold <- input$globalBartlettThreshold;
+      flignerThreshold <- input$globalFlignerThreshold;
+      
       filteredDataset <- dataset[,(names(dataset) %in% c(factor, target))];
       filteredDataset[,factor] <- as.factor(filteredDataset[[factor]]);
       
@@ -125,18 +130,29 @@ shinyServer(function(input, output, session) {
             ) 
           }),
           lapply(characterization, function(charact) {
-            isNormal <- all(charact@shapiro$p.value >= 0.1);
+            isNormal <- checkNormality(charact, shapiroThreshold, samplesThreshold);
             columns <- length(charact@shapiro$p.value);
             
             tagList(
               tags$tr(
-                tags$td(rowspan="5", charact@transformation.name),
+                tags$td(rowspan="6", charact@transformation.name),
                 tags$td(colspan="2", "Shapiro (Normality)"),
                 apply(descStats, 1, function(stats) {
                   p.value <- charact@shapiro$p.value[charact@shapiro[[factor]] == stats[factor]];
                   
                   tags$td(
-                    HTML(ifelse(p.value >= 0.1, paste(sep="", "<strong>", p.value, "</strong>"), p.value))
+                    HTML(ifelse(p.value >= shapiroThreshold, paste(sep="", "<strong>", p.value, "</strong>"), p.value))
+                  );
+                })
+              ),
+              tags$tr(
+                tags$td(colspan="2", paste("Samples >=", samplesThreshold, "(Normality)")),
+                apply(descStats, 1, function(stats) {
+                  samples <- charact@samples$n[charact@samples[[factor]] == stats[factor]];
+                  isOverThreshold <- samples >= samplesThreshold;
+                  
+                  tags$td(
+                    HTML(ifelse(isOverThreshold, paste(sep="", "<strong>", isOverThreshold, "</strong>"), isOverThreshold))
                   );
                 })
               ),
@@ -164,13 +180,13 @@ shinyServer(function(input, output, session) {
               tags$tr(class = ifelse(isNormal, "success", "warning"),
                 tags$td(colspan="2", "Bartlett (Homos. if normal)"),
                 tags$td(colspan=columns, 
-                  HTML(ifelse(isNormal && charact@bartlett >= 0.05, paste(sep="", "<strong>", charact@bartlett, "</strong>"), charact@bartlett))
+                  HTML(ifelse(isNormal && charact@bartlett >= bartlettThreshold, paste(sep="", "<strong>", charact@bartlett, "</strong>"), charact@bartlett))
                 )
               ),
               tags$tr(class = ifelse(!isNormal, "success", "warning"),
                 tags$td(colspan="2", "Fligner (Homos. if non-normal)"),
                 tags$td(colspan=columns, 
-                  HTML(ifelse(!isNormal && charact@fligner >= 0.05, paste(sep="", "<strong>", charact@fligner, "</strong>"), charact@fligner))
+                  HTML(ifelse(!isNormal && charact@fligner >= flignerThreshold, paste(sep="", "<strong>", charact@fligner, "</strong>"), charact@fligner))
                 )
               )
             )
@@ -328,6 +344,11 @@ shinyServer(function(input, output, session) {
     ) {
       return ("");
     } else {
+      shapiroThreshold <- input$globalShapiroThreshold;
+      samplesThreshold <- input$globalSampleSizeThreshold;
+      bartlettThreshold <- input$globalBartlettThreshold;
+      flignerThreshold <- input$globalFlignerThreshold;
+      
       transform <- characterize.transfomations[[transformation]];
       
       filteredDataset <- dataset[,(names(dataset) %in% c(factor, target))];
@@ -337,9 +358,12 @@ shinyServer(function(input, output, session) {
       characterization <- characterize(filteredDataset, transformations=list(None = function(x) {x}));
       charact <- characterization[[1]];
       
-      isNormal <- ifelse(input$autoTest, all(charact@shapiro$p.value >= 0.1), input$testsIsNormal);
-      isHomoscedastic <- ifelse(input$autoTest, 
-        ifelse(isNormal, charact@bartlett >= 0.05, charact@fligner >= 0.05),
+      isNormal <- ifelse(input$autoTest, 
+        checkNormality(charact, shapiroThreshold, samplesThreshold),
+        input$testsIsNormal
+      );
+      isHomoscedastic <- ifelse(input$autoTest,
+        isHomoscedastic <- checkHomoscedasticity(charact, isNormal, bartlettThreshold, flignerThreshold),
         input$testsIsHomoscedastic
       );
       
@@ -369,10 +393,10 @@ shinyServer(function(input, output, session) {
     transformations <- isolate(input$batchTransformations);
     correction <- isolate(input$batchTestCorrection);
     
-    shapiroThreshold <- isolate(input$batchShapiroThreshold);
-    sampleSizeThreshold <- isolate(input$batchSampleSizeThreshold);
-    bartlettThreshold <- isolate(input$batchBartlettThreshold);
-    flignerThreshold <- isolate(input$batchFlignerThreshold);
+    shapiroThreshold <- isolate(input$globalShapiroThreshold);
+    sampleSizeThreshold <- isolate(input$globalSampleSizeThreshold);
+    bartlettThreshold <- isolate(input$globalBartlettThreshold);
+    flignerThreshold <- isolate(input$globalFlignerThreshold);
     
     if (is.null(dataset) ||
       (length(factors) == 0 || (length(factors) == 1 && factors[1] == "")) ||
@@ -394,13 +418,10 @@ shinyServer(function(input, output, session) {
             transformationParam[[transformation]] <- characterize.transfomations[[transformation]];
             characterization <- characterize(filteredDataset, transformationParam)[[1]];
             
-            isNormal <- all(characterization@shapiro$p.value >= shapiroThreshold);
-            isHomoscedastic <- ifelse(isNormal,
-              characterization@bartlett >= bartlettThreshold,
-              characterization@fligner >= flignerThreshold
-            );
+            isNormal <- checkNormality(characterization, shapiroThreshold, sampleSizeThreshold);
+            isHomoscedastic <- checkHomoscedasticity(characterization, isNormal, bartlettThreshold, flignerThreshold);
             
-            testResult <- test.groups(filteredDataset, factor, target, isNormal, isHomoscedastic, sampleSizeThreshold);
+            testResult <- test.groups(filteredDataset, factor, target, isNormal, isHomoscedastic);
             testResult$transformation <- transformation;
             
             tests[[index]] <- testResult;

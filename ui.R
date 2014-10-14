@@ -24,11 +24,26 @@ shinyUI(pageWithSidebar(
   titlePanel("Sample Comparison Tests"),
   
   sidebarPanel(width = 3,
+    tags$h4("Dataset"),
     fileInput('datafile', 'Upload Dataset',
       accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')
     ),
     downloadButton("downloadSample1", "Sample Dataset 1 (Survey)"),
-    downloadButton("downloadSample2", "Sample Dataset 2 (Oil)")
+    downloadButton("downloadSample2", "Sample Dataset 2 (Oil)"),
+    tags$hr(),
+    tags$h4("Tests Thresholds"),
+    sliderInput("globalShapiroThreshold", label = "Shapiro Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.1),
+    tags$div(style="font-size: 0.8em; color: #999999;", "Normal if greater or equal"),
+    tags$br(),
+    numericInput("globalSampleSizeThreshold", label = "Sample Size Threshold", min = 1, max = 1000, step = 1, value = 30),
+    tags$div(style="font-size: 0.8em; color: #999999;", "Considere normal if each group of samples is greater or equal"),
+    tags$br(),
+    sliderInput("globalBartlettThreshold", label = "Bartlett Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+    tags$div(style="font-size: 0.8em; color: #999999;", "Homoscedastic if greater or equal when normal"),
+    tags$br(),
+    sliderInput("globalFlignerThreshold", label = "Fligner Threshold", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
+    tags$div(style="font-size: 0.8em; color: #999999;", "Homoscedastic if greater or equal when non-normal"),
+    tags$br()
   ),
   
   mainPanel(width = 9,
@@ -107,10 +122,6 @@ shinyUI(pageWithSidebar(
               ))
             ),
             tags$hr(),
-            sliderInput("batchShapiroThreshold", label = "Shapiro Threshold (Normal if greater or equal)", min = 0.01, max = 0.99, step = 0.01, value = 0.1),
-            numericInput("batchSampleSizeThreshold", label = "Sample Size Threshold (Normal if each group of samples is greater or equal)", min = 1, max = 1000, step = 1, value = 30),
-            sliderInput("batchBartlettThreshold", label = "Bartlett Threshold (Homoscedastic if greater or equal)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
-            sliderInput("batchFlignerThreshold", label = "Fligner Threshold (Homoscedastic if greater or equal)", min = 0.01, max = 0.99, step = 0.01, value = 0.05),
             selectInput("batchTestCorrection", label = "Test Correction", choices = c(
               "None" = "none",
               "Holm" = "holm",

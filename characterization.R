@@ -22,16 +22,48 @@ library(plyr);
 source('micceri.R');
 
 # Results class
-setClass("characterization", slots = c(
-  factor="character", 
-  target="character",
-  transformation.name="character",
-  transformation="function",
-  micceri="list",
-  shapiro="list",
-  bartlett="numeric",
-  fligner="numeric"
-));
+setClass("Characterization", 
+  slots = c(
+    factor="character", 
+    target="character",
+    transformation.name="character",
+    transformation="function",
+    samples="list",
+    micceri="list",
+    shapiro="list",
+    bartlett="numeric",
+    fligner="numeric"
+  )
+);
+
+setGeneric("checkNormality", 
+  def = function(object, shapiroThreshold = 0.1, samplesThreshold = 30) {
+    standardGeneric("checkNormality");
+  }
+);
+
+setGeneric("checkHomoscedasticity", 
+  def = function(object, isNormal = TRUE, bartlettThreshold = 0.05, flignerThreshold = 0.05) {
+   standardGeneric("checkHomoscedasticity");
+  }
+);
+
+setMethod("checkNormality", 
+  signature = "Characterization",
+  definition = function(object, shapiroThreshold = 0.1, samplesThreshold = 30) {
+    all(object@shapiro$p.value >= shapiroThreshold || object@samples$n >= samplesThreshold);
+  }
+);
+
+setMethod("checkHomoscedasticity", 
+  signature = "Characterization",
+  def = function(object, isNormal = TRUE, bartlettThreshold = 0.05, flignerThreshold = 0.05) {
+    ifelse(isNormal,
+       object@bartlett >= bartlettThreshold,
+       object@fligner >= flignerThreshold
+    );
+  }
+);
 
 characterize.transfomations <- list(
   None = function(x) x, Sqrt = sqrt, 
@@ -58,11 +90,14 @@ characterize <- function(dataset, transformations = list(
         tdataset <- dataset;
         tdataset[[target]] <- transformation(tdataset[[target]]);
         
-        results <- c(results, new("characterization",
+        results <- c(results, new("Characterization",
           factor = factor,
           target = target,
           transformation.name = transformation.name,
           transformation = transformation,
+          samples = ddply(tdataset, c(factor), function(x) { 
+            data.frame(n = length(x[[target]]));
+          }),
           micceri = tryCatch(
             {
               ddply(tdataset, c(factor), function(x) { 
